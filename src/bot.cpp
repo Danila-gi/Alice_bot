@@ -12,11 +12,19 @@
 #include <algorithm>
 #include <optional>
 
-Bot::Bot(){
+Bot::Bot(const std::string& fileResults): mFileResults(fileResults){
+    mResults.open(mFileResults);
+}
 
+Bot::~Bot(){
+    mResults.close();
 }
 
 bool Bot::init(const std::string& filenameInput, int ironPrice, int goldPrice, int gemsPrice, int expPrice){
+    if (!mResults.is_open()){
+        std::cout << "Can't open results file" << std::endl;
+        return false;
+    }
     std::string line;
     std::vector<Room> rooms;
     std::ifstream in(filenameInput);
@@ -33,16 +41,16 @@ bool Bot::init(const std::string& filenameInput, int ironPrice, int goldPrice, i
                 std::string token;
 
                 if (!std::getline(streamLine, token, ' ')){
-                    std::cout << line << std::endl;
+                    mResults << line << std::endl;
                     return false;
                 }
                 if (!Bot::getNumberFromStr(token, mM)){
-                    std::cout << line << std::endl;
+                    mResults << line << std::endl;
                     return false;
                 }
 
                 if (!std::getline(streamLine, token, ' ')){
-                    std::cout << line << std::endl;
+                    mResults << line << std::endl;
                     return false;
                 }
                 mTargetResource = Bot::getResourceFromStr(token);
@@ -54,17 +62,17 @@ bool Bot::init(const std::string& filenameInput, int ironPrice, int goldPrice, i
             std::string token;
 
             if (!std::getline(streamLine, token, ' ')){
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
             if (!Bot::getNumberFromStr(token, id)){
                 mIsInit = false;
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
 
             if (!std::getline(streamLine, token, ' ')){
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
             {
@@ -75,50 +83,50 @@ bool Bot::init(const std::string& filenameInput, int ironPrice, int goldPrice, i
                     int adjacentRoom;
                     if (!Bot::getNumberFromStr(tokenAdjacentRooms, adjacentRoom)){
                         mIsInit = false;
-                        std::cout << line << std::endl;
+                        mResults << line << std::endl;
                         return false;
                     }
                     room.adjacentRooms.push_back(adjacentRoom);
                 }
             }
             if (!std::getline(streamLine, token, ' ')){
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
 
             if (!Bot::getNumberFromStr(token, room.resourcesCount[Resource::Iron])){
                 mIsInit = false;
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
 
             if (!std::getline(streamLine, token, ' ')){
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
             if (!Bot::getNumberFromStr(token, room.resourcesCount[Resource::Gold])){
                 mIsInit = false;
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
 
             if (!std::getline(streamLine, token, ' ')){
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
             if (!Bot::getNumberFromStr(token, room.resourcesCount[Resource::Gems])){
                 mIsInit = false;
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
 
             if (!std::getline(streamLine, token, ' ')){
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
             if (!Bot::getNumberFromStr(token, room.resourcesCount[Resource::Exp])){
                 mIsInit = false;
-                std::cout << line << std::endl;
+                mResults << line << std::endl;
                 return false;
             }
             
@@ -174,6 +182,10 @@ void Bot::run(){
     if (!mIsInit){
         return;
     }
+    if (!mResults.is_open()){
+        std::cout << "Can't open results file" << std::endl;
+        return;
+    }
     mCurrentRoomId = mStartRoom;
     int currentM = mM;
     std::unordered_map<Resource, int> resourcesCountRunResult;
@@ -189,7 +201,7 @@ void Bot::run(){
                 continue;
             }
             mCurrentRoomId = nextRoom;
-            std::cout << "go " << mCurrentRoomId << std::endl;
+            mResults << "go " << mCurrentRoomId << std::endl;
             printCurrentState();
             isGo = true;
             currentM--;
@@ -203,7 +215,7 @@ void Bot::run(){
                     continue;
                 }
                 mCurrentRoomId = room;
-                std::cout << "go " << mCurrentRoomId << std::endl;
+                mResults << "go " << mCurrentRoomId << std::endl;
                 isGo = true;
                 printCurrentState();
                 currentM--;
@@ -230,13 +242,13 @@ void Bot::run(){
     int stepsForCollecting = currentM - (path.size() - 1);
     for (const auto& room: dijkstra(currentRoomId, mStartRoom)){
         if (currentM < 0){
-            std::cout << "died" << std::endl;
+            mResults << "died" << std::endl;
         }
         if (room == currentRoomId){
             continue;
         }
         mCurrentRoomId = room;
-        std::cout << "go " << mCurrentRoomId << std::endl;
+        mResults << "go " << mCurrentRoomId << std::endl;
         if (mCurrentRoomId != mStartRoom){
             printCurrentState();
         }
@@ -259,7 +271,7 @@ void Bot::collectResources(std::unordered_map<Resource, int>& resourcesCountRunR
         const auto resStr = Bot::getResourceAsStr(res);
         mRooms[mCurrentRoomId].resourcesCount[res] = -1;
         if (resStr.has_value()){
-            std::cout << "collect " << resStr.value() << std::endl;
+            mResults << "collect " << resStr.value() << std::endl;
             printCurrentState();
         }
         break;
@@ -404,7 +416,7 @@ Resource Bot::getResourceFromStr(const std::string& str){
 }
 
 void Bot::printCurrentState(){
-    std::cout << "state " 
+    mResults << "state " 
                 << mCurrentRoomId << " "
                 << (mRooms[mCurrentRoomId].resourcesCount[Resource::Iron] >= 0 ? std::to_string(mRooms[mCurrentRoomId].resourcesCount[Resource::Iron]) : "_") << " "
                 << (mRooms[mCurrentRoomId].resourcesCount[Resource::Gold] >= 0 ? std::to_string(mRooms[mCurrentRoomId].resourcesCount[Resource::Gold]) : "_") << " "
@@ -419,7 +431,7 @@ void Bot::printResult(std::unordered_map<Resource, int>& resourcesCountRunResult
     sum += resourcesCountRunResult[Resource::Gold] * mResourcesPrices[Resource::Gold];
     sum += resourcesCountRunResult[Resource::Gems] * mResourcesPrices[Resource::Gems];
     sum += resourcesCountRunResult[Resource::Exp] * mResourcesPrices[Resource::Exp];
-    std::cout << "result " 
+    mResults << "result " 
                 << resourcesCountRunResult[Resource::Iron] << " "
                 << resourcesCountRunResult[Resource::Gold] << " "
                 << resourcesCountRunResult[Resource::Gems] << " "

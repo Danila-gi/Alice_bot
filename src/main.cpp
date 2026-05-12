@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
         filenameInput = argv[1];
     }
 
-    std::unique_ptr<Bot> bot = std::make_unique<Bot>();
+    std::unique_ptr<Bot> bot = std::make_unique<Bot>("result.txt");
     const auto result = bot->init(filenameInput, 7, 11, 23, 1);
     std::cout << "Result init: " << result << std::endl;
     if (result){

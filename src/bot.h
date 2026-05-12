@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <queue>
@@ -37,7 +38,8 @@ struct Room{
 
 class Bot{
 public:
-    Bot();
+    Bot(const std::string& fileResults);
+    ~Bot();
     bool init(const std::string& filenameInput, int ironPrice, int goldPrice, int gemsPrice, int expPrice);
     void run();
 
@@ -57,6 +59,8 @@ private:
     int mM {0};
     int mCurrentRoomId {0};
     int mStartRoom {0};
+    std::string mFileResults;
+    std::ofstream mResults;
     Resource mTargetResource {Unknown};
     std::map<int, Room> mRooms;
     std::unordered_map<Resource, int> mResourcesPrices;
